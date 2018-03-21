@@ -1,0 +1,67 @@
+<?php
+
+/**
+ * @file
+ * A block module that displays jvectormap with views data.
+ */
+ 
+ /**
+ * Implements hook_block_info().
+ */
+function foo_jvectormap_block_info() {
+  $blocks['foo_jvectormap'] = array(
+    // The name that will appear in the block list.
+    'info' => t('foo jVectorMap'),
+    // Default setting.
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+
+
+
+/**
+ * Implements hook_block_view().
+ * 
+ * Prepares the contents of the block.
+ */
+function foo_jvectormap_block_view($delta = '') {
+  switch ($delta) {
+    case 'foo_jvectormap':
+      //$block['subject'] = t('jVectorMap');
+      if (user_access('access content')) {
+        
+          // Pass data through theme function.
+          $block['content'] = foo_jvectormap_load_map();
+        
+      }
+    return $block;
+  }
+  
+}
+
+function foo_jvectormap_load_map(){
+
+   
+  // Add js and css
+  	
+	drupal_add_js(array('foo_jvectormap' => array('testvar' => $GLOBALS['base_url'])), array('type' => 'setting'));
+  drupal_add_js(array('foo_jvectormap' => array('jvectormapPath' => $GLOBALS['base_url'].'/'.drupal_get_path('module','foo_jvectormap'))), array('type' => 'setting'));
+	drupal_add_css(drupal_get_path('module','foo_jvectormap'). '/jvectormap/jquery-jvectormap-2.0.3.css');
+	drupal_add_js(drupal_get_path('module', 'foo_jvectormap') . '/jvectormap/jquery-jvectormap-2.0.3.min.js');
+  drupal_add_js(drupal_get_path('module', 'foo_jvectormap') . '/js/jquery-jvectormap-world-mill.js');
+  drupal_add_js(drupal_get_path('module', 'foo_jvectormap') . '/js/select2.min.js');
+  drupal_add_css(drupal_get_path('module','foo_jvectormap').'/css/select2.min.css');
+
+    //drupal_add_js(drupal_get_path('module', 'foo_jvectormap') . '/js/test.js');
+  drupal_add_js(drupal_get_path('module', 'foo_jvectormap') . '/js/foo_jvectormap.js');
+	
+	//return "<div id='world-map' style='width:100%;height:200px;'></div>";
+  return "<div id='world-map'><div id='mapModal' class='modal fade bs-example-modal-sm' tabindex='-1' role='dialog' aria-labelledby='mySmallModalLabel'>
+  <div class='modal-dialog modal-sm'>
+    <div class='modal-content'>
+      ...
+    </div>
+  </div>
+</div></div>";
+}
