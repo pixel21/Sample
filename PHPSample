@@ -73,3 +73,1018 @@ function yr_bb_custom_fonts ( $system_fonts ) {
 	);
 	return $system_fonts;
 }
+
+<?php
+//* Start the engine
+include_once( get_template_directory() . '/lib/init.php' );
+
+//* Child theme (do not remove)
+define( 'CHILD_THEME_NAME', 'foobar' );
+define( 'CHILD_THEME_URL', 'http://pixel21.com' );
+define( 'CHILD_THEME_VERSION', '1.0' );
+
+//* Enqueue Google Fonts
+add_action( 'wp_enqueue_scripts', 'foobar_scripts' );
+function foobar_scripts() {
+
+	wp_enqueue_script( 'foobar-global', get_bloginfo( 'stylesheet_directory' ) . '/js/global.js', array( 'jquery' ), '1.0.0' );
+
+	wp_enqueue_style( 'dashicons' );
+	wp_enqueue_style( 'google-fonts', '//fonts.googleapis.com/css?family=Lato:300,400,700|Varela:400|PT+Sans:400,400italic,700,700italic', array(), CHILD_THEME_VERSION );
+	if(is_page(107) || is_page(28)){
+		wp_enqueue_script( 'foobar-dropdown', get_bloginfo( 'stylesheet_directory' ) . '/js/select2.min.js', array( 'jquery' ), '4.0.1' );
+		wp_enqueue_style( 'foobar-dropdown-css', get_bloginfo( 'stylesheet_directory' ) . '/css/select2.min.css', array(), '4.0.1' );
+		if(is_page(107)){
+		
+			wp_enqueue_script( 'foobar-dropdown-custom', get_bloginfo( 'stylesheet_directory' ) . '/js/foobar_dropdown.js', array( 'jquery' ), '4.0.1' );
+		
+			wp_localize_script( 'foobar-dropdown-custom', 'ajaxdropdown', array('ajaxurl' => admin_url( 'admin-ajax.php' ),'query_vars' => json_encode( $wp_query->query ),'home_url'=>get_permalink(107)));
+		}
+		if(is_page(28)){
+			
+			wp_enqueue_script( 'foobar-jobs-dropdown-custom', get_bloginfo( 'stylesheet_directory' ) . '/js/foobar_jobs_dropdown.js', array( 'jquery' ), '4.0.1' );
+			wp_localize_script( 'foobar-jobs-dropdown-custom', 'ajaxdropdown', array('ajaxurl' => admin_url( 'admin-ajax.php' ),'query_vars' => json_encode( $wp_query->query ),'home_url'=>get_permalink(28)));
+		
+		//wp_localize_script( 'foobar-dropdown-custom', 'ajaxdropdown', array('ajaxurl' => admin_url( 'admin-ajax.php' ),'query_vars' => json_encode( $wp_query->query ),'home_url'=>get_permalink(107)));
+		}
+	}
+}
+
+
+//* Customize footer 
+remove_action( 'genesis_footer', 'genesis_do_footer' );
+add_action( 'genesis_footer', 'sp_custom_footer' );
+function sp_custom_footer() {
+	?>
+	<p>foobar Power &copy; 2015  /  <a href="<?php echo esc_url( get_permalink(459) ); ?>">Privacy Policy</a> & <a href="<?php echo esc_url( get_permalink(460) ); ?>">Legal</a></p>
+	
+	<?php
+}
+
+//* Add support for custom header
+add_theme_support( 'custom-header', array(
+	'header-selector' => '.site-title a',
+	'header-text'     => false,
+	'height'          => 85,
+	'width'           => 187,
+) );
+
+//Customize Search form label
+add_filter( 'genesis_search_form_label', 'sp_search_form_label' );
+function sp_search_form_label ( $text ) {
+	return esc_attr( 'Custom Label' );
+}
+
+
+//Modify default TinyMCE editor to add subscript and superscript options.
+
+function foobar_mce_buttons_2( $buttons ) {	
+	/**
+	 * Add in a core button that's disabled by default
+	 */
+	$buttons[] = 'superscript';
+	$buttons[] = 'subscript';
+
+	return $buttons;
+}
+add_filter( 'mce_buttons_2', 'foobar_mce_buttons_2' );
+
+
+//* Add support for structural wraps
+add_theme_support( 'genesis-structural-wraps', array(
+	'header',
+	'nav',
+	'subnav',
+	'site-inner',
+	'footer-widgets',
+	'footer'
+) );
+
+add_action( 'genesis_after_header', 'foobar_do_titleimage' );
+function foobar_do_titleimage(){
+	if(!is_front_page() && get_field('title_image'))
+	{
+		remove_action( 'genesis_entry_header', 'genesis_do_post_title' );
+		add_filter('genesis_post_title_text','foobar_post_title_text');
+		add_filter('genesis_post_title_output','foobar_process_post_title',15);
+		genesis_do_post_title();
+	}
+}
+
+//add filter to genesis_do_post_title
+function foobar_process_post_title($output){
+	$image=get_field('title_image');
+	return '<div class="titleimage-wrap"><div class="titleimage" style="background-image:url('.$image['url'].');"><div class="titletext wrap">'.$output.'</div></div></div>';
+
+}
+
+//add span text around the title
+function foobar_post_title_text(){
+	$formattedTitle = foobar_return_formatted_title(get_the_title());
+return '<span class="title-format">'.$formattedTitle.'</span>';
+}
+
+//return last word of the title with a span
+function foobar_return_formatted_title($titletext){
+	$textArray = str_word_count($titletext,1,'!.');
+	if(count($textArray)>1){
+		$lastElement = array_pop($textArray);
+		$spanText = '<span class="thick">'.$lastElement.'</span>';
+		return implode(' ',$textArray).' '.$spanText;
+	}
+	else{
+		return $titletext;
+	}
+
+}
+
+
+
+
+//Register custom post type News
+
+add_action( 'init', 'create_posttype_news' );
+function create_posttype_news() {
+  register_post_type( 'lp_news',
+    array(
+      'labels' => array(
+        'name' => __( 'News' ),
+        'singular_name' => __( 'News Item' )
+      ),
+      'public' => true,
+      'has_archive' => false,
+      'rewrite' => array('slug' => 'news'),
+      'supports'=>array('title'),
+    )
+  );
+}
+
+//Register custom post type Press Release
+
+add_action( 'init', 'create_posttype_press_release' );
+function create_posttype_press_release() {
+  register_post_type( 'lp_press_release',
+    array(
+      'labels' => array(
+        'name' => __( 'Press Releases' ),
+        'singular_name' => __( 'Press Release' )
+      ),
+      'public' => true,
+      'has_archive' => false,
+      'rewrite' => array('slug' => 'press-release'),
+      'supports'=>array('title'),
+    )
+  );
+}
+
+
+//Register custom post type Jobs
+
+//add_action( 'init', 'create_posttype_jobs' );
+function create_posttype_jobs() {
+  register_post_type( 'lp_jobs',
+    array(
+      'labels' => array(
+        'name' => __( 'Jobs' ),
+        'singular_name' => __( 'Job' )
+      ),
+      'public' => true,
+      'has_archive' => true,
+      'rewrite' => array('slug' => 'jobs'),
+      'supports'=> array('title'),
+    )
+  );
+}
+
+//Register custom post type foobar Job
+
+add_action( 'init', 'create_posttype_foobar_jobs' );
+function create_posttype_foobar_jobs() {
+  register_post_type( 'foobar_jobs',
+    array(
+      'labels' => array(
+        'name' => __( 'foobar Jobs' ),
+        'singular_name' => __( 'foobar Job' )
+      ),
+      'public' => true,
+      'has_archive' => true,
+      'rewrite' => array('slug' => 'foobar-jobs'),
+      'supports'=> array('title'),
+      'capability_type' => 'foobar_jobs',
+	  'capabilities' => array(
+				'publish_posts' => 'publish_foobar_jobs',
+				'edit_posts' => 'edit_foobar_jobs',
+				'edit_others_posts' => 'edit_others_foobar_jobs',
+				'delete_posts' => 'delete_foobar_jobs',
+				'delete_others_posts' => 'delete_others_foobar_jobs',
+				'read_private_posts' => 'read_private_foobar_jobs',
+				'edit_post' => 'edit_foobar_job',
+				'delete_post' => 'delete_foobar_job',
+				'read_post' => 'read_foobar_job',
+				),
+      
+    )
+  );
+}
+
+add_filter( 'map_meta_cap', 'foobar_jobs_meta_cap', 10, 4 );
+
+function foobar_jobs_meta_cap( $caps, $cap, $user_id, $args ) {
+
+	/* If editing, deleting, or reading a movie, get the post and post type object. */
+	if ( 'edit_foobar_job' == $cap || 'delete_foobar_job' == $cap || 'read_foobar_job' == $cap ) {
+		$post = get_post( $args[0] );
+		$post_type = get_post_type_object( $post->post_type );
+
+		/* Set an empty array for the caps. */
+		$caps = array();
+	}
+
+	/* If editing a movie, assign the required capability. */
+	if ( 'edit_foobar_job' == $cap ) {
+		if ( $user_id == $post->post_author )
+			$caps[] = $post_type->cap->edit_posts;
+		else
+			$caps[] = $post_type->cap->edit_others_posts;
+	}
+
+	/* If deleting a movie, assign the required capability. */
+	elseif ( 'delete_foobar_job' == $cap ) {
+		if ( $user_id == $post->post_author )
+			$caps[] = $post_type->cap->delete_posts;
+		else
+			$caps[] = $post_type->cap->delete_others_posts;
+	}
+
+	/* If reading a private movie, assign the required capability. */
+	elseif ( 'read_foobar_job' == $cap ) {
+
+		if ( 'private' != $post->post_status )
+			$caps[] = 'read';
+		elseif ( $user_id == $post->post_author )
+			$caps[] = 'read';
+		else
+			$caps[] = $post_type->cap->read_private_posts;
+	}
+
+	/* Return the capabilities required by the user. */
+	return $caps;
+}
+
+//Register custom post type Mepco Job
+
+add_action( 'init', 'create_posttype_mepco_jobs' );
+function create_posttype_mepco_jobs() {
+  register_post_type( 'mepco_jobs',
+    array(
+      'labels' => array(
+        'name' => __( 'Mepco Jobs' ),
+        'singular_name' => __( 'Mepco Job' )
+      ),
+      'public' => true,
+      'has_archive' => true,
+      'rewrite' => array('slug' => 'mepco-jobs'),
+      'supports'=> array('title'),
+      'capability_type' => 'mepco_jobs',
+	  'capabilities' => array(
+				'publish_posts' => 'publish_mepco_jobs',
+				'edit_posts' => 'edit_mepco_jobs',
+				'edit_others_posts' => 'edit_others_mepco_jobs',
+				'delete_posts' => 'delete_mepco_jobs',
+				'delete_others_posts' => 'delete_others_mepco_jobs',
+				'read_private_posts' => 'read_private_mepco_jobs',
+				'edit_post' => 'edit_mepco_job',
+				'delete_post' => 'delete_mepco_job',
+				'read_post' => 'read_mepco_job',
+				),
+    )
+  );
+}
+
+
+add_filter( 'map_meta_cap', 'mepco_jobs_meta_cap', 10, 4 );
+
+function mepco_jobs_meta_cap( $caps, $cap, $user_id, $args ) {
+
+	/* If editing, deleting, or reading a movie, get the post and post type object. */
+	if ( 'edit_mepco_job' == $cap || 'delete_mepco_job' == $cap || 'read_mepco_job' == $cap ) {
+		$post = get_post( $args[0] );
+		$post_type = get_post_type_object( $post->post_type );
+
+		/* Set an empty array for the caps. */
+		$caps = array();
+	}
+
+	/* If editing a movie, assign the required capability. */
+	if ( 'edit_mepco_job' == $cap ) {
+		if ( $user_id == $post->post_author )
+			$caps[] = $post_type->cap->edit_posts;
+		else
+			$caps[] = $post_type->cap->edit_others_posts;
+	}
+
+	/* If deleting a movie, assign the required capability. */
+	elseif ( 'delete_mepco_job' == $cap ) {
+		if ( $user_id == $post->post_author )
+			$caps[] = $post_type->cap->delete_posts;
+		else
+			$caps[] = $post_type->cap->delete_others_posts;
+	}
+
+	/* If reading a private movie, assign the required capability. */
+	elseif ( 'read_mepco_job' == $cap ) {
+
+		if ( 'private' != $post->post_status )
+			$caps[] = 'read';
+		elseif ( $user_id == $post->post_author )
+			$caps[] = 'read';
+		else
+			$caps[] = $post_type->cap->read_private_posts;
+	}
+
+	/* Return the capabilities required by the user. */
+	return $caps;
+}
+
+//Create foobar Custom Widget
+
+class foobar_Custom_Widget extends WP_Widget {
+
+	/**
+	 * Sets up the widgets name etc
+	 */
+	public function __construct() {
+		$widget_ops = array( 
+			'class_name' => 'foobar_custom_widget',
+			'description' => 'Use this widget to place HTML text,images or videos in the sidebar',
+		);
+		parent::__construct( 'foobar_custom_widget', 'foobar Custom Widget', $widget_ops );
+	}
+
+	/**
+	 * Outputs the content of the widget
+	 *
+	 * @param array $args
+	 * @param array $instance
+	 */
+	public function widget( $args, $instance ) {
+		// outputs the content of the widget
+		$widget_id = 'widget_'.$args["widget_id"];
+    	echo $args['before_widget'];
+
+    	echo foobar_custom_widget_content($widget_id);
+    	echo $args['after_widget'];
+	}
+
+	/**
+	 * Outputs the options form on admin
+	 *
+	 * @param array $instance The widget options
+	 */
+	public function form( $instance ) {
+		// outputs the options form on admin
+	}
+
+	/**
+	 * Processing widget options on save
+	 *
+	 * @param array $new_instance The new options
+	 * @param array $old_instance The previous options
+	 */
+	public function update( $new_instance, $old_instance ) {
+		// processes widget options to be saved
+	}
+}
+
+add_action( 'widgets_init', function(){
+	register_widget( 'foobar_Custom_Widget' );
+});
+
+function foobar_custom_widget_content($widget_id){
+	$result = "";
+	//echo have_rows('widget_details',$widget_id);
+	if(have_rows('widget_details',$widget_id)){
+		while(have_rows('widget_details',$widget_id)){
+			the_row();
+			//echo "row layout is".get_row_layout();
+			switch(get_row_layout()){
+				case widget_title_layout:
+				    //echo "entered".get_sub_field('widget_title',$widget_id);
+					$result = $result.'<h2 class="sidebar-header">'.get_sub_field('widget_title',$widget_id).'</h2>';
+					break;
+				case widget_image_layout:
+					$result = $result.'<p><img src="'.get_sub_field('widget_image',$widget_id)["url"].'"></p>';
+					break;
+				case widget_read_more_layout:
+					$title = get_sub_field('widget_read_more_title',$widget_id)?get_sub_field('widget_read_more_title',$widget_id):get_sub_field('widget_read_more_link',$widget_id);
+					$result = $result.'<p><a href="'.get_sub_field('widget_read_more_link',$widget_id).'">'.$title.'</a></p>';
+					break;
+				case widget_description_layout:
+					$result= $result.get_sub_field('widget_description',$widget_id);
+					break;
+				case widget_media_layout:
+					$result = $result.'<div class="oembed_container">'.get_sub_field('widget_media',$widget_id).'</div>';
+					break;
+				case widget_plain_text_layout:
+					$result = $result.'<p class="sidebar-text">'.get_sub_field('widget_plain_text',$widget_id).'</p>';
+					break;
+			}
+		}
+	}
+	return $result;
+
+}
+
+// Display the flexible content above the leadership content.
+
+function foobar_generate_complete_page_leadership(){
+	foobar_flex_content();
+	foobar_leadership_content();
+
+}
+
+
+/*
+ * Generate Leadership page content
+*/
+
+function foobar_leadership_content(){
+  
+	if( have_rows('leadership_content') ){
+	
+		while ( have_rows('leadership_content') ) { the_row();
+			
+			if( get_row_layout() == 'add_a_team_member' ){
+
+        	echo '<div class="team-single first"><div class="one-fourth first"><img class="team-member" src="'.get_sub_field('team_member_picture')["url"].'"></div>
+        		  <div class="three-fourths"><h3>'.get_sub_field('team_member_name').'</h3><p>'.get_sub_field('team_member_title').'</p>
+        		  <p>'.get_sub_field('team_member_bio').'</p></div></div>
+        			';
+        	
+        	}
+        	elseif(get_row_layout()=='leadership_text'){
+        	
+        		echo '<div class="team-row first">'.get_sub_field('leadership_extra_text').'</div>';
+        	
+        	}
+		
+		}
+		
+	
+	}
+}
+
+
+// Create the dropdown on news and press releases page
+
+function foobar_generate_complete_page_jobs(){
+
+	// Remove the standard pagination, so we don't get two sets
+	remove_action( 'genesis_after_endwhile', 'genesis_posts_nav' );
+	//add_action('genesis_entry_content','foobar_flex_content');
+	foobar_flex_content();
+	foobar_jobs_loop();
+	// echo '<p class="apply">For foobar Power jobs, please send your resume to <a href="mailto:careers@foobarpower.net">careers@foobarpower.net</a> or apply online <a href="'.get_permalink( 324 ).'">here</a>.</p>
+	// 	<p class="apply">For Mepco jobs, please send your resume to <a href="mailto:careers@mepcollc.net">careers@mepcollc.net</a> or apply online <a href="'.get_permalink( 323 ).'">here</a>.</p>';
+	// echo '<p class="apply">For foobar Power jobs, apply online <a href="http://foobarpowerllc.appone.com/">here</a>.</p>
+	// 	<p class="apply">For Mepco jobs, please send your resume to <a href="mailto:careers@mepcollc.net">careers@mepcollc.net</a> or apply online <a href="'.get_permalink( 323 ).'">here</a>.</p>';
+	//add_action( 'genesis_entry_content', 'foobar_jobs_loop' );
+}
+
+/**
+ * Display the jobs dropdown and rest of the page
+ * Custom paginated loop
+ */
+function foobar_jobs_loop() {
+	echo '<div id="foobar_jobs_dropdown" class="one-fourth"><select class="foobar_jobs_dropdown">
+		  <option value=""></option>
+  		  <option value="all">All</option>
+  		 <option value="foobar-power-jobs">foobar Power Jobs</option>
+  		 <option value="mepco-jobs">Mepco Jobs</option>
+		</select></div>';
+	
+	echo '<div class="foobar_jobs">';
+	
+	foobar_generate_jobs_page();
+	echo '</div>';
+	
+}
+
+
+function foobar_generate_jobs_page(){
+
+	$args = array(
+		'posts_per_page' => 3,
+		'post_type' => array('foobar_jobs','mepco_jobs'),
+		'paged' => get_query_var( 'paged' ),
+	);
+	
+	global $wp_query;
+	add_action( 'pre_get_posts', 'foobar_pre_get_posts' );
+	$wp_query = new WP_Query( $args );
+	remove_action( 'pre_get_posts', 'foobar_pre_get_posts' );
+	if( $wp_query->have_posts() ): 
+		while( $wp_query->have_posts() ): $wp_query->the_post(); global $post;
+		    $summary = (get_field('jobs_teaser'))?get_field('jobs_teaser'): genesis_truncate_phrase(get_field('jobs_description'),300);
+			echo '<a class="w-inline-block news-link" href="' . get_permalink() . '"><div class="one-fourth first"><div class="date">'.get_the_date("F d, Y").'<br/>'.get_field('jobs_location').'</div></div><div class="three-fourths"><h1 class="news-headline">'.get_the_title().'</h1><p>'.$summary.'</p></div></a>';		
+		endwhile;
+		genesis_posts_nav();
+	endif;
+	wp_reset_query();
+
+}
+
+
+// Create the dropdown on news and press releases page
+
+function foobar_generate_complete_page_news(){
+
+	// Remove the standard pagination, so we don't get two sets
+	remove_action( 'genesis_after_endwhile', 'genesis_posts_nav' );
+	foobar_news_and_press_loop();
+}
+
+/**
+ * Display the dropdown and display rest of the content
+ * Custom paginated loop
+ */
+function foobar_news_and_press_loop() {
+
+	echo '<div id="foobar_news_dropdown" class="one-fourth"><select class="foobar_dropdown">
+		  <option value=""></option>
+  		  <option value="all">All</option>
+  		 <option value="news">News</option>
+  		 <option value="press-releases">Press Releases</option>
+		</select></div>';
+	
+	echo '<div class="foobar_news">';
+	
+	foobar_generate_news_page();
+	echo '</div>';
+}
+
+function foobar_generate_news_page(){
+
+	$args = array(
+		'posts_per_page' => 3,
+		'post_type' => array('lp_news','lp_press_release'),
+		'paged' => get_query_var( 'paged' ),
+	);
+	
+	global $wp_query;
+	add_action( 'pre_get_posts', 'foobar_pre_get_posts' );
+	$wp_query = new WP_Query( $args );
+	remove_action( 'pre_get_posts', 'foobar_pre_get_posts' );
+	if( $wp_query->have_posts() ): 
+		while( $wp_query->have_posts() ): $wp_query->the_post(); global $post;
+			 $authorStr = "";
+			 if(trim(get_field('author_name'))){
+			 	$authorStr = "by ".get_field('author_name');
+			 }
+			 else{
+			 	$authorStr = "by ".get_the_author();
+			 }
+		     //$authorStr = (get_post_type()=="lp_news")?"by ".get_the_author():"Press Release";
+			 $summary = (get_field('news_teaser'))?get_field('news_teaser'):genesis_truncate_phrase(get_field('news_content'),300);
+			//echo '<a class="w-inline-block news-link" href="' . get_permalink() . '"><div class="one-fourth first"><div class="date">'.get_the_date("F d, Y").'<br/>'.$authorStr.'</div></div><div class="three-fourths"><h1 class="news-headline">'.get_the_title().'</h1><p>'.$summary.'</p></div></a>';
+			echo '<a class="w-inline-block news-link" href="' . get_permalink() . '"><div class="one-fourth first"><div class="date">'.get_the_date("F d, Y").'</div></div><div class="three-fourths"><h1 class="news-headline">'.get_the_title().'</h1><p class="news-outlet">'.get_field('news_outlet').'</p><p>'.$summary.'</p></div></a>';		
+		endwhile;
+		genesis_posts_nav();
+	endif;
+	wp_reset_query();
+
+}
+
+
+function foobar_flex_content(){
+
+	//echo "called";
+  
+	if( have_rows('flex_content_outside') ){
+	
+		while ( have_rows('flex_content_outside') ) { 
+			the_row();
+			switch(get_sub_field('layout_options')){
+				case 1:
+					echo '<div class="row">'.foobar_get_column_content(1).'</div>';
+					break;
+				case 2:
+					echo '<div class="one-half first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-half">'.foobar_get_column_content(2).'</div>';
+					break;
+				case 3:
+					echo '<div class="one-third first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="two-thirds">'.foobar_get_column_content(2).'</div>';
+					break;
+				case 4:
+					echo '<div class="two-thirds first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-third">'.foobar_get_column_content(2).'</div>';
+					break;
+				case 5:
+					echo '<div class="one-fourth first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="three-fourths">'.foobar_get_column_content(2).'</div>';
+					break;
+				case 6:
+					echo '<div class="three-fourths first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-fourth">'.foobar_get_column_content(2).'</div>';
+					break;
+				case 7:
+					echo '<div class="one-third first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-third">'.foobar_get_column_content(2).'</div>';
+					echo '<div class="one-third">'.foobar_get_column_content(3).'</div>';
+					break;
+				case 8:
+					echo '<div class="one-fourth first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-half">'.foobar_get_column_content(2).'</div>';
+					echo '<div class="one-fourth">'.foobar_get_column_content(3).'</div>';
+					break;
+				case 9:
+					echo '<div class="one-fourth first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-fourth">'.foobar_get_column_content(2).'</div>';
+					echo '<div class="one-half">'.foobar_get_column_content(3).'</div>';
+					break;
+				case 10:
+					echo '<div class="one-half first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-fourth">'.foobar_get_column_content(2).'</div>';
+					echo '<div class="one-fourth">'.foobar_get_column_content(3).'</div>';
+					break;
+				case 11:
+					echo '<div class="one-fourth first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-fourth">'.foobar_get_column_content(2).'</div>';
+					echo '<div class="one-fourth">'.foobar_get_column_content(3).'</div>';
+					echo '<div class="one-fourth">'.foobar_get_column_content(4).'</div>';
+					break;
+				case 12:
+					echo '<div class="one-sixth first">'.foobar_get_column_content(1).'</div>';
+					echo '<div class="one-third">'.foobar_get_column_content(2).'</div>';
+					echo '<div class="one-third">'.foobar_get_column_content(3).'</div>';
+					echo '<div class="one-sixth">'.foobar_get_column_content(4).'</div>';
+					break;
+			
+			}
+			
+		
+		}
+		
+	
+	}
+}
+
+// get column content 
+// @ param column number - the flexible content is named column_1_content, column_2_content etc
+
+function foobar_get_column_content($col){
+	$fieldname = 'column_'.trim($col).'_content';
+	$result = "";
+	if(have_rows($fieldname)){
+		while(have_rows($fieldname)){
+			the_row();
+			switch(get_row_layout()){
+				case flex_image_layout:
+					$result = $result.'<p><img src="'.get_sub_field('flex_image_field')["url"].'"></p>';
+					break;
+				case flex_text_blurb_layout:
+					$result = $result.'<p>'.get_sub_field('flex_text_block_field').'</p>';
+					break;
+				case flex_wysiwyg_layout:
+					$result = $result.get_sub_field('flex_wysiwyg_field');
+					break;
+				case flex_link_layout:
+					$linktitle = get_sub_field('flex_link_title')?get_sub_field('flex_link_title'):get_sub_field('flex_link_field');
+					$result = $result.'<p><a href="'.get_sub_field('flex_link_field').'">'.$linktitle.'</a></p>';
+					break;
+				case flex_embed_media_layout:
+					$result = $result.'<p>'.get_sub_field('flex_embed_media_layout').'</p>';
+					break;
+				case flex_highlighted_text_layout:
+					$result = $result.'<p class="lead">'.get_sub_field('flex_highlighted_text_field').'</p>';
+					break;
+			}
+		
+		}
+	
+	}
+	return $result;
+
+}
+
+
+//Custom header re-write
+
+remove_action( 'wp_head', 'genesis_custom_header_style' );
+add_action( 'wp_head', 'foobar_custom_header_style' );
+/**
+ * Custom header callback.
+ *
+ * It outputs special CSS to the document head, modifying the look of the header based on user input.
+ *
+ * @since 1.6.0
+ *
+ * @uses genesis_html() Check for HTML5 support.
+ *
+ * @return null Return null on if custom header not supported, user specified own callback, or no options set.
+ */
+function foobar_custom_header_style() {
+
+	//* Do nothing if custom header not supported
+	if ( ! current_theme_supports( 'custom-header' ) )
+		return;
+
+	//* Do nothing if user specifies their own callback
+	if ( get_theme_support( 'custom-header', 'wp-head-callback' ) )
+		return;
+
+	$output = '';
+
+	$header_image = get_header_image();
+	$text_color   = get_header_textcolor();
+
+	//* If no options set, don't waste the output. Do nothing.
+	if ( empty( $header_image ) && ! display_header_text() && $text_color === get_theme_support( 'custom-header', 'default-text-color' ) )
+		return;
+
+	$header_selector = get_theme_support( 'custom-header', 'header-selector' );
+	$title_selector  = genesis_html5() ? '.custom-header .site-title'       : '.custom-header #title';
+	$desc_selector   = genesis_html5() ? '.custom-header .site-description' : '.custom-header #description';
+
+	//* Header selector fallback
+	if ( ! $header_selector )
+		$header_selector = genesis_html5() ? '.custom-header .site-header' : '.custom-header #header';
+
+	//* Header image CSS, if exists
+	if ( $header_image )
+		$output .= sprintf( '%s { background-image: url(%s) !important; }', $header_selector, esc_url( $header_image ) );
+
+	//* Header text color CSS, if showing text
+	if ( display_header_text() && $text_color !== get_theme_support( 'custom-header', 'default-text-color' ) )
+		$output .= sprintf( '%2$s a, %2$s a:hover, %3$s { color: #%1$s !important; }', esc_html( $text_color ), esc_html( $title_selector ), esc_html( $desc_selector ) );
+
+	if ( $output )
+		printf( '<style type="text/css">%s</style>' . "\n", $output );
+
+}
+
+//altering the query parameters for news page
+
+
+function foobar_pre_get_posts($query){
+	if(is_page(107)){
+	
+		$type = $_GET["view"];
+		if($type == "all" || $type == "news" || $type == "press-releases")
+		{
+	
+		if($type == "all")
+			$postType = array('lp_news','lp_press_release');
+		elseif($type == "news")
+			$postType = array('lp_news');
+		else
+			$postType = array('lp_press_release');
+		
+	
+		// Display only 1 post for the original blog archive
+        $query->set( 'post_type', $postType );
+        $query->set( 'posts_per_page', 5 );
+        //var_dump($query);
+        return;
+		}
+		else{
+		$query->set( 'post_type', array('lp_news','lp_press_release') );
+        $query->set( 'posts_per_page', 5 );
+        return;
+		
+		}
+	}
+	if(is_page(28)){
+	
+		$type = $_GET["view"];
+		if($type == "all" || $type == "foobar-power-jobs" || $type == "mepco-jobs")
+		{
+	
+		if($type == "all")
+			$postType = array('foobar_jobs','mepco_jobs');
+		elseif($type == "foobar-power-jobs")
+			$postType = array('foobar_jobs');
+		else
+			$postType = array('mepco_jobs');
+		
+	
+		// Display only 1 post for the original blog archive
+        $query->set( 'post_type', $postType );
+        $query->set( 'posts_per_page', 5 );
+        //var_dump($query);
+        return;
+		}
+		else{
+		$query->set( 'post_type', array('foobar_jobs','mepco_jobs') );
+        $query->set( 'posts_per_page', 5 );
+        return;
+		
+		}
+	}
+
+}
+
+//Intercepting Ajax call
+
+add_action( 'wp_ajax_nopriv_ajax_dropdown', 'my_ajax_dropdown' );
+add_action( 'wp_ajax_ajax_dropdown', 'my_ajax_dropdown' );
+
+function my_ajax_dropdown() {
+	$type = $_POST["type"];
+	if($type == "all" || $type == "news" || $type == "press"){
+	
+		if($type == "all")
+			$postType = array('lp_news','lp_press_release');
+		elseif($type == "news")
+			$postType = array('lp_news');
+		else
+			$postType = array('lp_press_release');
+		
+	$args = array(
+		'posts_per_page' => 3,
+		'post_type' => $postType,
+		'paged' => get_query_var( 'paged' ),
+	);
+	foobar_generate_news_page($args);
+    die();
+	
+	
+	}
+    
+}
+
+function foobar_search_text(){
+	return "Enter keyword";
+}
+
+add_filter( 'gform_upload_path', function ( $path_info, $form_id ) {
+    GFCommon::log_debug( "log_upload_path(): path_info for form #{$form_id} => " . print_r( $path_info, true ) );
+
+    return $path_info;
+}, 1, 2 );
+
+//remove author info and posted date information from all the posts. If you want to remove it from only one post type, 
+//in the appropriate section under single.php
+
+remove_action( 'genesis_entry_header', 'genesis_post_info', 12 );
+
+
+
+add_filter('genesis_search_text','foobar_search_text');
+
+
+// Dynamically Populate the mepco jobs field
+
+add_filter( 'gform_pre_render_8', 'foobar_populate_mepco_jobs' );
+add_filter( 'gform_pre_validation_8', 'foobar_populate_mepco_jobs' );
+add_filter( 'gform_pre_submission_filter_8', 'foobar_populate_mepco_jobs' );
+add_filter( 'gform_admin_pre_render_8', 'foobar_populate_mepco_jobs' );
+
+function foobar_populate_mepco_jobs($form){
+	foreach ( $form['fields'] as &$field ) {
+
+        if ( $field->type != 'select' || strpos( $field->cssClass, 'mepco-list' ) === false ) {
+            continue;
+        }
+        //var_dump($field);
+        $title_to_search = "";
+        if(get_query_var('jid')){
+        	$job_id = absint(get_query_var('jid'));
+        	if(get_post_type($job_id)=="mepco_jobs" && get_post_status($job_id)=='publish'){
+        		//$choices = array();
+        		//$choices[]=array( 'text' => get_the_title($job_id), 'value' => get_the_title($job_id),'isSelected'=>true );
+        		$title_to_search = get_the_title($job_id);
+        		//$field->choices = $choices;
+        		
+        	}
+
+        }
+
+        
+        //echo 'query var is'.get_query_var('mid');
+        $posts = get_posts( 'post_type=mepco_jobs&post_status=publish' );
+
+        $choices = array();
+        $placeholder = true;
+        //echo $title_to_search;
+        foreach ( $posts as $post ) {
+        	//echo $post->post_title;
+        	if($title_to_search == $post->post_title){
+        		//echo true;
+        		$placeholder = false;
+            	$choices[] = array( 'text' => $post->post_title, 'value' => $post->post_title, 'isSelected'=>true );
+            }
+        	else{
+        		$choices[] = array( 'text' => $post->post_title, 'value' => $post->post_title );
+        	}
+        }
+        if($placeholder){
+        	$field->choices = $choices;
+        	$field->placeholder = 'Select a Job Posting';
+        }
+        else{
+        	$field->choices = $choices;
+        }
+        // update 'Select a Post' to whatever you'd like the instructive option to be
+        
+        //
+        
+    	
+        //var_dump($field);
+    }
+    return $form;
+}
+
+// Dynamically Populate the foobar jobs field
+
+add_filter( 'gform_pre_render_9', 'foobar_populate_foobar_jobs' );
+add_filter( 'gform_pre_validation_9', 'foobar_populate_foobar_jobs' );
+add_filter( 'gform_pre_submission_filter_9', 'foobar_populate_foobar_jobs' );
+add_filter( 'gform_admin_pre_render_9', 'foobar_populate_foobar_jobs' );
+
+function foobar_populate_foobar_jobs($form){
+	foreach ( $form['fields'] as &$field ) {
+
+        if ( $field->type != 'select' || strpos( $field->cssClass, 'foobar-list' ) === false ) {
+            continue;
+        }
+        //var_dump($field);
+        $title_to_search = "";
+        if(get_query_var('jid')){
+        	$job_id = absint(get_query_var('jid'));
+        	if(get_post_type($job_id)=="foobar_jobs" && get_post_status($job_id)=='publish'){
+        		//$choices = array();
+        		//$choices[]=array( 'text' => get_the_title($job_id), 'value' => get_the_title($job_id),'isSelected'=>true );
+        		$title_to_search = get_the_title($job_id);
+        		//$field->choices = $choices;
+        		
+        	}
+
+        }
+
+        
+        //echo 'query var is'.get_query_var('mid');
+        $posts = get_posts( 'post_type=foobar_jobs&post_status=publish' );
+
+        $choices = array();
+        $placeholder = true;
+        //echo $title_to_search;
+        foreach ( $posts as $post ) {
+        	//echo $post->post_title;
+        	if($title_to_search == $post->post_title){
+        		//echo true;
+        		$placeholder = false;
+            	$choices[] = array( 'text' => $post->post_title, 'value' => $post->post_title, 'isSelected'=>true );
+            }
+        	else{
+        		$choices[] = array( 'text' => $post->post_title, 'value' => $post->post_title );
+        	}
+        }
+        if($placeholder){
+        	$field->choices = $choices;
+        	$field->placeholder = 'Select a Job Posting';
+        }
+        else{
+        	$field->choices = $choices;
+        }
+        // update 'Select a Post' to whatever you'd like the instructive option to be
+        
+        //
+        
+    	
+        //var_dump($field);
+    }
+    return $form;
+}
+
+
+
+function add_custom_query_var( $vars ){
+  $vars[] = "jid";
+  return $vars;
+}
+add_filter( 'query_vars', 'add_custom_query_var' );
+
+// add_filter( 'get_the_excerpt', 'foobar_filter_excerpt' );
+// function foobar_filter_excerpt($excerpt){
+// 	echo "entered";
+// 	return "Test string in place of excerpt";
+
+// }
+
+
+//* Add HTML5 markup structure
+add_theme_support( 'html5', array( 'search-form', 'comment-form', 'comment-list' ) );
+
+//* Add Accessibility support
+add_theme_support( 'genesis-accessibility', array( 'headings', 'drop-down-menu',  'search-form', 'skip-links', 'rems' ) );
+
+//* Add viewport meta tag for mobile browsers
+add_theme_support( 'genesis-responsive-viewport' );
+
+//* Add support for custom background
+add_theme_support( 'custom-background' );
+
+//* Add support for 3-column footer widgets
+add_theme_support( 'genesis-footer-widgets', 3 );
