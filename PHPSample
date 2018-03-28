@@ -1,0 +1,75 @@
+<?php
+
+// Defines
+define( 'FL_CHILD_THEME_DIR', get_stylesheet_directory() );
+define( 'FL_CHILD_THEME_URL', get_stylesheet_directory_uri() );
+
+// Classes
+require_once 'classes/class-fl-child-theme.php';
+
+// Actions
+add_action( 'wp_enqueue_scripts', 'FLChildTheme::enqueue_scripts', 1000 );
+
+
+/* Add a filter to limit number of products displayed to 6 on a page */
+add_filter( 'loop_shop_per_page', 'new_loop_shop_per_page', 20 );
+
+function new_loop_shop_per_page( $cols ) {
+	// $cols contains the current number of products per page based on the value stored on Options -> Reading
+	// Return the number of products you wanna show per page.
+	$cols = 6;
+	return $cols;
+}
+
+/* Add a filter to change "Add to cart" text to "reserve" */
+add_filter( 'woocommerce_product_add_to_cart_text', 'woo_archive_custom_cart_button_text' );    // 2.1 +
+
+function woo_archive_custom_cart_button_text() {
+
+	return __( 'Reserve', 'woocommerce' );
+
+}
+
+/* By default the query puts pricing above the description but our design asks to display it
+below the description so using this filter I remove it */
+add_action( 'fl_builder_post_grid_before_content','yr_post_grid_before_content',5 );
+
+function yr_post_grid_before_content(){
+
+	remove_action( 'fl_builder_post_grid_before_content', array('FLThemeBuilderWooCommerceArchive','post_grid_before_content') );
+
+}
+
+/*Since the post_grid_before_content is a static function I can call add_action using the class name and display the price below
+description field */
+add_action('fl_builder_post_grid_after_content',array('FLThemeBuilderWooCommerceArchive','post_grid_before_content'),5);
+
+
+/* Add our custom fonts to page builder modules and theme customizer*/
+//Add to Beaver Builder Theme Customizer
+add_filter( 'fl_theme_system_fonts', 'yr_bb_custom_fonts' );
+
+//Add to Page Builder modules
+add_filter( 'fl_builder_font_families_system', 'yr_bb_custom_fonts' );
+function yr_bb_custom_fonts ( $system_fonts ) {
+
+	$system_fonts['AlternateGothic2 BT'] = array(
+		'fallback' => '"Oswald","Helvetica Neue",Helvetica,Arial,sans-serif;',
+		'weights' => array(
+			'400',
+		),
+	);
+	$system_fonts['AlternateGotNo3D'] = array(
+		'fallback' => '"Oswald","Helvetica Neue",Helvetica,Arial,sans-serif;',
+		'weights' => array(
+			'400',
+		),
+	);
+	$system_fonts[ 'Chaparral Pro' ] = array(
+		'fallback' => 'Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;',
+		'weights' => array(
+			'300','400','700',
+		),
+	);
+	return $system_fonts;
+}
